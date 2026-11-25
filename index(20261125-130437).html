@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="yandex-game-id" content="">
+<title>Блоковая Империя — Кликер</title>
+<style>
+:root{--accent:#d99a52;--panel:rgba(20,22,29,.88);--muted:#aeb5c2}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:#fff;min-height:100vh;background:#171b22;overflow-x:hidden}
+#world{position:fixed;inset:0;z-index:-2;background:radial-gradient(circle at 50% 30%,#64704b,#252d25 65%,#111714);transition:background 1s}
+#world:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.5)),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 80px),repeating-linear-gradient(0deg,transparent 0 79px,rgba(255,255,255,.025) 80px)}
+#app{max-width:1180px;margin:auto;padding:18px;position:relative}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.logo{font-weight:1000;letter-spacing:.06em;font-size:clamp(19px,4vw,30px);text-shadow:0 3px 0 #0006}.logo span{color:var(--accent)}
+.top-actions{display:flex;gap:8px}.smallbtn,.tab,.buy,.settingbtn{border:1px solid #ffffff20;background:#ffffff12;color:white;border-radius:12px;padding:10px 13px;font-weight:800;cursor:pointer}.smallbtn:hover,.tab:hover,.buy:hover,.settingbtn:hover{background:#ffffff25}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid #ffffff1a;border-radius:16px;padding:12px 15px;box-shadow:0 8px 24px #0003}.stat small{display:block;color:var(--muted);font-size:12px}.stat strong{font-size:clamp(17px,3vw,25px);font-weight:950}
+.layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:14px}
+.panel{background:var(--panel);border:1px solid #ffffff1c;border-radius:20px;padding:17px;box-shadow:0 14px 35px #0004;backdrop-filter:blur(10px)}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:460px;position:relative;overflow:hidden}
+.stage-label{color:#d9e0e8;font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:900}
+.block-wrap{height:270px;width:100%;display:grid;place-items:center;perspective:800px;position:relative}
+.block{width:150px;height:150px;position:relative;transform-style:preserve-3d;transform:rotateX(-22deg) rotateY(35deg);cursor:pointer;transition:filter .2s;filter:drop-shadow(0 22px 15px #0008);animation:float 3s ease-in-out infinite}
+.block:active{filter:brightness(1.3) drop-shadow(0 10px 10px #0008)}
+.face{position:absolute;width:150px;height:150px;border:2px solid #0002;image-rendering:pixelated}
+.front{transform:translateZ(75px)}.right{transform:rotateY(90deg) translateZ(75px);filter:brightness(.72)}.top{transform:rotateX(90deg) translateZ(75px);filter:brightness(1.28)}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -12px}}
+.block.hit{animation:hit .16s ease}@keyframes hit{50%{scale:.88;rotate:5deg}}
+.clickhint{color:#cbd2dc;font-size:13px;margin-top:-4px}.blockname{font-size:23px;font-weight:1000;margin:2px 0 4px}.progress{width:min(340px,90%);height:9px;background:#ffffff1c;border-radius:99px;overflow:hidden;margin:12px auto 4px}.progress>div{height:100%;background:linear-gradient(90deg,var(--accent),#fff0a8);width:0%;transition:width .2s}
+.xptext{font-size:12px;color:#bac2ce}.floating{position:absolute;font-weight:1000;color:#fff4b0;text-shadow:0 2px 5px #000;pointer-events:none;animation:up .75s forwards}@keyframes up{to{transform:translateY(-70px);opacity:0}}
+.boostline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}.pill{font-size:12px;background:#ffffff12;border:1px solid #ffffff1c;padding:7px 10px;border-radius:99px;color:#dce3eb}
+.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:12px}.tab{white-space:nowrap;flex:1}.tab.active{background:var(--accent);color:#1b1b1b;border-color:transparent}
+.shoplist{display:grid;gap:9px;max-height:420px;overflow:auto;padding-right:3px}.item{display:flex;align-items:center;gap:10px;padding:11px;border-radius:14px;background:#ffffff0b;border:1px solid #ffffff14}.itemicon{width:43px;height:43px;border-radius:10px;display:grid;place-items:center;font-size:23px;background:#ffffff12;flex-shrink:0}.iteminfo{flex:1;min-width:0}.iteminfo b{display:block;font-size:14px}.iteminfo small{color:var(--muted);font-size:11px;display:block;margin-top:3px}.buy{padding:9px 11px;min-width:85px}.buy:disabled{opacity:.4;cursor:not-allowed}
+.bottomnote{font-size:11px;color:#8f9aa9;text-align:center;margin-top:12px}
+.modalback{position:fixed;inset:0;background:#0009;display:none;place-items:center;padding:18px;z-index:10}.modalback.show{display:grid}.modal{width:min(440px,100%);background:#202631;border:1px solid #ffffff2a;border-radius:20px;padding:20px;box-shadow:0 25px 70px #0009}.modal h2{margin:0 0 15px}.settingrow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff16}.settingrow:last-child{border:0}input[type=range]{width:125px;accent-color:var(--accent)}.toggle{accent-color:var(--accent);width:19px;height:19px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #ffffff30;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:20}.toast.show{opacity:1}
+@media(max-width:760px){#app{padding:12px}.layout{grid-template-columns:1fr}.center{min-height:380px}.stats{gap:6px}.stat{padding:10px}.stat strong{font-size:18px}.block-wrap{height:230px}.block,.face{width:125px;height:125px}.front{transform:translateZ(62.5px)}.right{transform:rotateY(90deg) translateZ(62.5px)}.top{transform:rotateX(90deg) translateZ(62.5px)}}
+</style>
+</head>
+<body>
+<div id="world"></div>
+<div id="app">
+<header><div class="logo">VOXEL <span>EMPIRE</span></div><div class="top-actions"><button class="smallbtn" id="dailyBtn">🎁 Бонус</button><button class="smallbtn" id="settingsBtn">⚙️</button></div></header>
+<section class="stats">
+ <div class="stat"><small>🪙 Монеты</small><strong id="coins">0</strong></div>
+ <div class="stat"><small>⚡ Доход / сек</small><strong id="cps">0</strong></div>
+ <div class="stat"><small>👆 За тап</small><strong id="tapPower">1</strong></div>
+</section>
+<div class="layout">
+ <section class="panel center">
+  <div class="stage-label">ТВОЯ КОЛЛЕКЦИЯ БЛОКОВ</div>
+  <div class="block-wrap"><div class="block" id="block" role="button" aria-label="Нажми на блок"><div class="face front"></div><div class="face right"></div><div class="face top"></div></div></div>
+  <div class="blockname" id="blockName">Земляной блок</div><div class="clickhint">Нажимай на блок и добывай монеты!</div>
+  <div class="progress"><div id="progress"></div></div><div class="xptext" id="progressText">0 / 100 до следующего блока</div>
+  <div class="boostline"><span class="pill" id="levelPill">Уровень 1</span><span class="pill" id="prestigePill">Престиж 0</span><span class="pill" id="critPill">Крит: 2%</span></div>
+ </section>
+ <section class="panel">
+  <div class="tabs"><button class="tab active" data-tab="upgrades">Улучшения</button><button class="tab" data-tab="skins">Скины</button><button class="tab" data-tab="quests">Задания</button></div>
+  <div class="shoplist" id="shop"></div>
+  <div class="bottomnote">Прогресс автоматически сохраняется на этом устройстве</div>
+ </section>
+</div>
+</div>
+<div class="modalback" id="settingsModal"><div class="modal"><h2>⚙️ Настройки</h2>
+ <div class="settingrow"><span>Музыка</span><input class="toggle" id="musicToggle" type="checkbox" checked></div>
+ <div class="settingrow"><span>Звуки</span><input class="toggle" id="soundToggle" type="checkbox" checked></div>
+ <div class="settingrow"><span>Громкость</span><input id="volume" type="range" min="0" max="100" value="35"></div>
+ <div class="settingrow"><span>Уменьшить анимации</span><input class="toggle" id="motionToggle" type="checkbox"></div>
+ <div class="settingrow"><span>Сбросить прогресс</span><button class="settingbtn" id="resetBtn">Сброс</button></div>
+ <button class="settingbtn" id="closeSettings" style="width:100%;margin-top:14px">Готово</button>
+ </div></div>
+<div class="toast" id="toast"></div>
+<script>
+const stages=[
+{name:"Земляной блок",emoji:"🟫",cost:0,need:100,colors:["#795334","#553b2a","#9a7046"],bg:"radial-gradient(circle at 50% 25%,#68794c,#263528 70%,#101713)",reward:1},
+{name:"Деревянный блок",emoji:"🪵",cost:0,need:220,colors:["#a66a32","#70401f","#d49a52"],bg:"radial-gradient(circle at 50% 25%,#927047,#433323 70%,#17120e)",reward:2},
+{name:"Угольный блок",emoji:"⚫",need:450,colors:["#33383d","#171a1e","#59616a"],bg:"radial-gradient(circle at 50% 25%,#525b66,#20242b 70%,#090b0e)",reward:3},
+{name:"Железный блок",emoji:"⚙️",need:850,colors:["#a9afb4","#6e7880","#e0e4e7"],bg:"radial-gradient(circle at 50% 25%,#7b8993,#303a42 70%,#11171b)",reward:5},
+{name:"Золотой блок",emoji:"🟨",need:1500,colors:["#e7b72e","#9b6b0c","#ffe17a"],bg:"radial-gradient(circle at 50% 25%,#9a7b30,#453517 70%,#171107)",reward:8},
+{name:"Алмазный блок",emoji:"💎",need:2600,colors:["#38d5d1","#168b9d","#a2fff7"],bg:"radial-gradient(circle at 50% 25%,#2d9da6,#17424f 70%,#08171d)",reward:13},
+{name:"Обсидиановый блок",emoji:"🟪",need:4300,colors:["#563b75","#21172f","#9271bd"],bg:"radial-gradient(circle at 50% 25%,#49345f,#1c1528 70%,#08060e)",reward:21},
+{name:"Незеритовый блок",emoji:"🛡️",need:7000,colors:["#75665d","#3d3432","#b19a85"],bg:"radial-gradient(circle at 50% 25%,#685449,#292321 70%,#100d0c)",reward:34},
+{name:"Бедрок",emoji:"⬛",need:11000,colors:["#30333a","#111318","#646a74"],bg:"radial-gradient(circle at 50% 25%,#343945,#171a22 70%,#050609)",reward:55},
+{name:"Аметистовый блок",emoji:"🔮",need:17500,colors:["#a25be8","#55238b","#e2aaff"],bg:"radial-gradient(circle at 50% 25%,#7142a1,#28143e 70%,#090510)",reward:90},
+{name:"Радужный блок",emoji:"🌈",need:28000,colors:["#ef5eae","#4ecbd4","#f5d45c"],bg:"radial-gradient(circle at 50% 25%,#7b559d,#26304b 70%,#090b16)",reward:150},
+{name:"Космический блок",emoji:"🌌",need:45000,colors:["#5c75e8","#26205c","#b9b5ff"],bg:"radial-gradient(circle at 50% 25%,#303e88,#14172f 70%,#03040b)",reward:250},
+{name:"Квантовый блок",emoji:"✨",need:72000,colors:["#65f4d0","#287d9b","#d5fff7"],bg:"radial-gradient(circle at 50% 25%,#246b77,#102a45 70%,#030a12)",reward:420},
+{name:"Блок бесконечности",emoji:"♾️",need:120000,colors:["#f6f1ff","#7866e8","#ff9ee9"],bg:"radial-gradient(circle at 50% 25%,#8062ba,#271d54 70%,#080514)",reward:700}
+];
+const upgrades=[
+{id:"tap",name:"Сильная кирка",desc:"+1 к монетам за тап",icon:"⛏️",base:30,mult:1.65,level:0},
+{id:"auto",name:"Авто-шахтёр",desc:"+1 монета в секунду",icon:"🤖",base:80,mult:1.72,level:0},
+{id:"crit",name:"Критический удар",desc:"+2% шанс x5 за тап",icon:"💥",base:250,mult:2.05,level:0},
+{id:"mult",name:"Усилитель добычи",desc:"+15% ко всему доходу",icon:"🚀",base:500,mult:2.3,level:0},
+{id:"drone",name:"Дрон-добытчик",desc:"+5 монет в секунду",icon:"🛸",base:900,mult:1.9,level:0},
+{id:"luck",name:"Удача шахтёра",desc:"+1% шанс найти бонус",icon:"🍀",base:1400,mult:2.2,level:0}
+];
+let state={coins:0,total:0,taps:0,stage:0,tap:1,cps:0,prestige:0,levels:{},skin:0,claimed:false,lastDaily:0,settings:{music:true,sound:true,volume:35,motion:false},quests:{taps:0,coins:0,upgrades:0}};
+const $=id=>document.getElementById(id);
+function fmt(n){if(n<1000)return Math.floor(n).toString();const units=["K","M","B","T","Qa","Qi"];let i=-1;do{n/=1000;i++}while(n>=1000&&i<units.length-1);return n.toFixed(n>=100?0:n>=10?1:2)+units[i]}
+function cost(u){return Math.floor(u.base*Math.pow(u.mult,state.levels[u.id]||0))}
+function multiplier(){return (1+state.prestige*.25)*Math.pow(1.15,state.levels.mult||0)}
+function tapValue(){return (1+(state.levels.tap||0))*stages[state.stage].reward*multiplier()}
+function autoValue(){return ((state.levels.auto||0)+5*(state.levels.drone||0))*multiplier()}
+function renderBlock(){let s=stages[state.stage],faces=document.querySelectorAll(".face");faces[0].style.background=`linear-gradient(135deg,${s.colors[2]},${s.colors[0]} 50%,${s.colors[1]})`;faces[1].style.background=s.colors[1];faces[2].style.background=s.colors[2];$("blockName").textContent=s.name;$("world").style.background=s.bg;document.documentElement.style.setProperty("--accent",s.colors[2]);}
+function render(){ $("coins").textContent=fmt(state.coins);$("cps").textContent=fmt(autoValue());$("tapPower").textContent=fmt(tapValue());$("levelPill").textContent="Уровень "+(state.stage+1);$("prestigePill").textContent="Престиж "+state.prestige;$("critPill").textContent="Крит: "+(2+(state.levels.crit||0)*2)+"%";
+let need=stages[state.stage].need,prev=state.stage?stages[state.stage-1].need:0,prog=Math.max(0,state.total-prev),span=need-prev;$("progress").style.width=Math.min(100,prog/span*100)+"%";$("progressText").textContent=fmt(prog)+" / "+fmt(span)+" до следующего блока";
+if(document.querySelector('[data-tab="upgrades"]').classList.contains("active"))renderShop("upgrades");
+}
+function gain(n){state.coins+=n;state.total+=n;state.quests.coins+=n;while(state.stage<stages.length-1&&state.total>=stages[state.stage].need){state.stage++;renderBlock();toast("Новый блок открыт: "+stages[state.stage].name+"!");}render();save();}
+function hit(e){let val=tapValue(),crit=Math.random()<(2+(state.levels.crit||0)*2)/100;if(crit)val*=5;if(Math.random()<(state.levels.luck||0)*.01)val*=3;gain(val);state.taps++;state.quests.taps++;let b=$("block");b.classList.remove("hit");void b.offsetWidth;b.classList.add("hit");let f=document.createElement("div");f.className="floating";f.textContent=(crit?"КРИТ! ":"+")+fmt(val);let r=b.getBoundingClientRect();f.style.left=(e?.clientX||r.left+r.width/2)+"px";f.style.top=(e?.clientY||r.top+20)+"px";document.body.appendChild(f);setTimeout(()=>f.remove(),750);sound(crit?620:300,.07);}
+$("block").addEventListener("click",hit);
+function renderShop(tab){let shop=$("shop");shop.innerHTML="";if(tab==="upgrades"){upgrades.forEach(u=>{let lvl=state.levels[u.id]||0,c=cost(u),el=document.createElement("div");el.className="item";el.innerHTML=`<div class="itemicon">${u.icon}</div><div class="iteminfo"><b>${u.name} <span style="color:var(--accent)">Lv.${lvl}</span></b><small>${u.desc}</small></div><button class="buy" ${state.coins<c?"disabled":""}>${fmt(c)} 🪙</button>`;el.querySelector("button").onclick=()=>{if(state.coins<c)return;state.coins-=c;state.levels[u.id]=lvl+1;state.quests.upgrades++;render();save();sound(500,.1);toast("Улучшение куплено!");};shop.appendChild(el);});}
+if(tab==="skins"){stages.forEach((s,i)=>{let owned=i<=state.stage,el=document.createElement("div");el.className="item";el.innerHTML=`<div class="itemicon">${s.emoji}</div><div class="iteminfo"><b>${s.name}</b><small>${i===state.stage?"Текущий блок":owned?"Открыт":"Откроется на уровне "+(i+1)}</small></div><button class="buy" ${!owned||state.skin===i?"disabled":""}>${state.skin===i?"Выбран":owned?"Выбрать":"🔒"}</button>`;el.querySelector("button").onclick=()=>{state.skin=i;state.stage=Math.max(state.stage,i);renderBlock();render();save();};shop.appendChild(el);});}
+if(tab==="quests"){let q=[["👆", "Нажми 100 раз",state.quests.taps,100,100],["🪙","Добудь 5 000 монет",state.quests.coins,5000,500],["🛠️","Купи 5 улучшений",state.quests.upgrades,5,250]];q.forEach((x,i)=>{let done=state.quests["claim"+i],el=document.createElement("div");el.className="item";el.innerHTML=`<div class="itemicon">${x[0]}</div><div class="iteminfo"><b>${x[1]}</b><small>${fmt(x[2])} / ${fmt(x[3])} · награда ${x[4]} 🪙</small></div><button class="buy" ${done||x[2]<x[3]?"disabled":""}>${done?"Готово":"Забрать"}</button>`;el.querySelector("button").onclick=()=>{if(done||x[2]<x[3])return;state.quests["claim"+i]=true;state.coins+=x[4];render();save();toast("Награда получена!");};shop.appendChild(el);});}}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");renderShop(t.dataset.tab);});
+function toast(t){let el=$("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1800)}
+let audioCtx=null,master=null,musicTimer=null;
+function audio(){if(!audioCtx){audioCtx=new(window.AudioContext||window.webkitAudioContext)();master=audioCtx.createGain();master.gain.value=state.settings.volume/100*.18;master.connect(audioCtx.destination);}if(audioCtx.state==="suspended")audioCtx.resume();}
+function sound(freq,dur){if(!state.settings.sound)return;try{audio();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="triangle";o.frequency.value=freq;g.gain.setValueAtTime(.12,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);o.connect(g);g.connect(master);o.start();o.stop(audioCtx.currentTime+dur);}catch(e){}}
+function music(){if(musicTimer)clearInterval(musicTimer);if(!state.settings.music)return;let notes=[196,247,294,247,220,262,330,262],i=0;musicTimer=setInterval(()=>{if(!state.settings.music)return;try{audio();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=notes[i++%notes.length];g.gain.value=.025;g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.42);o.connect(g);g.connect(master);o.start();o.stop(audioCtx.currentTime+.43);}catch(e){}},470);}
+$("settingsBtn").onclick=()=>$("settingsModal").classList.add("show");$("closeSettings").onclick=()=>$("settingsModal").classList.remove("show");
+$("musicToggle").onchange=e=>{state.settings.music=e.target.checked;music();save()};$("soundToggle").onchange=e=>{state.settings.sound=e.target.checked;save()};$("volume").oninput=e=>{state.settings.volume=+e.target.value;if(master)master.gain.value=state.settings.volume/100*.18;save()};$("motionToggle").onchange=e=>{state.settings.motion=e.target.checked;document.querySelector(".block").style.animation=e.target.checked?"none":"";save()};
+$("resetBtn").onclick=()=>{if(confirm("Точно удалить весь прогресс?")){localStorage.removeItem("voxelEmpireSave");location.reload();}};
+$("dailyBtn").onclick=()=>{let day=Math.floor(Date.now()/86400000);if(state.lastDaily===day){toast("Бонус уже забран. Возвращайся завтра!");return;}state.lastDaily=day;let reward=500+state.stage*150;state.coins+=reward;state.total+=reward;render();save();toast("Ежедневный бонус: +"+fmt(reward)+" монет!");sound(700,.2);};
+function save(){try{localStorage.setItem("voxelEmpireSave",JSON.stringify(state));}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem("voxelEmpireSave"));if(s)state={...state,...s,levels:{...state.levels,...s.levels},settings:{...state.settings,...s.settings},quests:{...state.quests,...s.quests}};}catch(e){}}
+load();renderBlock();render();music();setInterval(()=>{let n=autoValue();if(n>0)gain(n);},1000);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save();else music();});
+</script>
+</body></html>
